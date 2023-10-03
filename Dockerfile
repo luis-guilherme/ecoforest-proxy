@@ -1,4 +1,4 @@
-FROM python:2
+FROM frolvlad/alpine-python2
 WORKDIR /usr/src/app
 COPY requirements.txt ./
 COPY ecoforest-proxy.py ./
