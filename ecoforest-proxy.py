@@ -2,9 +2,9 @@
 Ecoforest proxy to transform replies to JSON
 """
 
-import sys, logging, datetime, urllib, urllib2, json, requests, urlparse, os
+import sys, logging, datetime, urllib.request, urllib.parse, urllib.error, urllib.request, urllib.error, urllib.parse, json, requests, urllib.parse, os
 from os import curdir, sep
-from BaseHTTPServer import BaseHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler
 from requests.auth import HTTPBasicAuth
 
 # configuration
@@ -35,7 +35,7 @@ class EcoforestServer(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
-            self.wfile.write(json.dumps(response))
+            self.wfile.write(bytes(json.dumps(response,ensure_ascii=False), 'utf-8'))
         except:
             self.send_error(500, 'EcoforestServer: Something went wrong here on the server side.')
 
@@ -126,13 +126,13 @@ class EcoforestServer(BaseHTTPRequestHandler):
         reply = dict(e.split('=') for e in stats.text.split('\n')[:-1]) # discard last line ?
         # Remove all white spaces from bad response from ecoforest ...
         reply = { x.translate({32:None}) : y
-                 for x, y in reply.items()}
+                 for x, y in list(reply.items())}
         # Extract the juice (problems with 255 limit chars in HA)
         dfilter = lambda x, y: dict([ (i,x[i]) for i in x if i in set(y) ])
         wanted_values= ('Th','Da','Tp','Nh','Ne','Pn','Pf','Es','Ex','Ni','Co','Tn')
         reply1 = dfilter(reply, wanted_values)
 
-	return reply1
+        return reply1
 
     def ecoforest_stats(self):
         stats = self.ecoforest_call('idOperacion=1002')
@@ -182,7 +182,7 @@ class EcoforestServer(BaseHTTPRequestHandler):
 
 
     def do_POST(self):
-        parsed_path = urlparse.urlparse(self.path)
+        parsed_path = urllib.parse.urlparse(self.path)
         args = dict()
         if parsed_path.query:
             args = dict(qc.split("=") for qc in parsed_path.query.split("&"))
@@ -208,7 +208,7 @@ class EcoforestServer(BaseHTTPRequestHandler):
 
 
     def do_GET(self):
-        parsed_path = urlparse.urlparse(self.path)
+        parsed_path = urllib.parse.urlparse(self.path)
         args = dict()
         if parsed_path.query:
             args = dict(qc.split("=") for qc in parsed_path.query.split("&"))
@@ -237,11 +237,11 @@ class EcoforestServer(BaseHTTPRequestHandler):
 
 if __name__ == '__main__':
     try:
-        from BaseHTTPServer import HTTPServer
+        from http.server import HTTPServer
         server = HTTPServer(('', DEFAULT_PORT), EcoforestServer)
         logging.info('Ecoforest proxy server started, with config host (%s) and username (%s)', host, username)
         logging.info('use {Ctrl+C} to shut-down ...')
         server.serve_forever()
-    except Exception, e:
+    except Exception as e:
         logging.error(e)
         sys.exit(2)
